@@ -1,0 +1,41 @@
+# Dependabot — actualiza automáticamente:
+#   • Dependencias Python (vía pyproject.toml + uv.lock)
+#   • Imágenes base del Dockerfile
+#   • Acciones de GitHub Actions
+#
+# Docs: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+version: 2
+
+updates:
+  # Python deps — uv lockfile
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "python"]
+    groups:
+      python-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+      python-security:
+        applies-to: security-updates
+
+  # Imágenes base del Dockerfile
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "docker"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels: ["dependencies", "ci"]

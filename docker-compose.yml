@@ -1,0 +1,21 @@
+name: pb-sso-bridge
+
+services:
+  bridge:
+    build: .
+    image: pb-sso-bridge:latest
+    container_name: pbsso-bridge
+    restart: unless-stopped
+    environment:
+      OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID:?set OAUTH_CLIENT_ID in .env}
+      OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET:?set OAUTH_CLIENT_SECRET in .env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      ISSUER: ${ISSUER:-http://localhost:8000}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

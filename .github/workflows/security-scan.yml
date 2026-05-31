@@ -1,0 +1,78 @@
+name: security-scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Re-escaneo semanal aunque no haya cambios (nuevas CVEs publicadas)
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+  security-events: write   # subir SARIF a la pestaña Security
+
+jobs:
+  trivy:
+    name: Trivy · filesystem + Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ─── Filesystem (uv.lock + Dockerfile + secrets) ─────────
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: "1"
+          ignore-unfixed: false
+          format: sarif
+          output: trivy-fs.sarif
+
+      - name: Upload filesystem SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      # ─── Docker image ────────────────────────────────────────
+      - name: Build image
+        run: docker build -t pb-sso-bridge:ci .
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: image
+          image-ref: pb-sso-bridge:ci
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          # Falla solo si hay CVE con fix disponible (las "affected" sin fix son ruido)
+          ignore-unfixed: true
+          exit-code: "1"
+          format: sarif
+          output: trivy-image.sarif
+
+      - name: Upload image SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+  # Snyk solo se activa si SNYK_TOKEN está configurado en Settings → Secrets
+  snyk:
+    name: Snyk · pyproject.toml + Docker
+    runs-on: ubuntu-latest
+    if: ${{ secrets.SNYK_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=pyproject.toml

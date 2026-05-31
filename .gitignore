@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs
+venv/
+.venv/
+env/
+
+# Entorno y secretos — NUNCA versionar
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Build / coverage
+build/
+dist/
+*.egg
+.coverage
+htmlcov/
+
+# Docker / data local
+pb_data/
